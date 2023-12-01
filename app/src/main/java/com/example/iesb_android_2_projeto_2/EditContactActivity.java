@@ -68,9 +68,9 @@ public class EditContactActivity extends AppCompatActivity {
 
       try {
           contentResolver.applyBatch(ContactsContract.AUTHORITY, contentProviderResults);
-          Toast.makeText(this, "Contato adicionado com sucesso", Toast.LENGTH_LONG).show();
+          Toast.makeText(this, "Contato editado com sucesso", Toast.LENGTH_LONG).show();
       } catch (RemoteException | OperationApplicationException e) {
-          Toast.makeText(this, "Erro ao adicionar contato", Toast.LENGTH_LONG).show();
+          Toast.makeText(this, "Erro ao editar contato", Toast.LENGTH_LONG).show();
       }
   }
 
@@ -156,11 +156,11 @@ public class EditContactActivity extends AppCompatActivity {
     try {
         if (cur.moveToFirst()) {
             do {
-                if (cur.getString(cur.getColumnIndex(ContactsContract.PhoneLookup.DISPLAY_NAME)).equalsIgnoreCase(oldContact.getName())) {
-                    String lookupKey = cur.getString(cur.getColumnIndex(ContactsContract.Contacts.LOOKUP_KEY));
-                    Uri uri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_LOOKUP_URI, lookupKey);
-                    getContentResolver().delete(uri, null, null);
-                }
+              if (cur.getString(cur.getColumnIndexOrThrow(ContactsContract.PhoneLookup.NUMBER)).equals(oldContact.getPhone())) {
+                String lookupKey = cur.getString(cur.getColumnIndexOrThrow(ContactsContract.Contacts.LOOKUP_KEY));
+                Uri uri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_LOOKUP_URI, lookupKey);
+                getContentResolver().delete(uri, null, null);
+            }
             } while (cur.moveToNext());
         }
     } catch (Exception e) {

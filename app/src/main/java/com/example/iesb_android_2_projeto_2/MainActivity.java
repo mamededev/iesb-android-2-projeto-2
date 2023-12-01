@@ -3,13 +3,14 @@ package com.example.iesb_android_2_projeto_2;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.annotation.NonNull;
 
 import android.Manifest;
 import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
 import android.content.OperationApplicationException;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.provider.ContactsContract;
@@ -84,6 +85,7 @@ public class MainActivity extends AppCompatActivity {
 
         contactAdapter.setOnDeleteClickListener(position -> {
             DatabaseHelper.getInstance(MainActivity.this).deleteContact(contactList.get(position).getId());
+            deleteContact(contactList.get(position).getPhone());
             contactList.remove(position);
             contactAdapter.notifyDataSetChanged();
         });
@@ -177,10 +179,32 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-protected void onResume() {
-    super.onResume();
-    contactList.clear();
-    contactList.addAll(DatabaseHelper.getInstance(this).getAllContacts());
-    contactAdapter.notifyDataSetChanged();
-}
+      protected void onResume() {
+          super.onResume();
+          contactList.clear();
+          contactList.addAll(DatabaseHelper.getInstance(this).getAllContacts());
+          contactAdapter.notifyDataSetChanged();
+      }
+
+      private void deleteContact(String phoneNumber) {
+        Uri contactUri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(phoneNumber));
+        Cursor cur = getContentResolver().query(contactUri, null, null, null, null);
+        try {
+            if (cur.moveToFirst()) {
+                do {
+                  if (cur.getString(cur.getColumnIndexOrThrow(ContactsContract.PhoneLookup.NUMBER)).equals(phoneNumber)) {
+                        String lookupKey = cur.getString(cur.getColumnIndexOrThrow(ContactsContract.Contacts.LOOKUP_KEY));
+                        Uri uri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_LOOKUP_URI, lookupKey);
+                        getContentResolver().delete(uri, null, null);
+                    }
+                } while (cur.moveToNext());
+            }
+        } catch (Exception e) {
+            System.out.println(e.getStackTrace());
+        } finally {
+            if (cur != null) {
+                cur.close();
+            }
+        }
+      }
 }
