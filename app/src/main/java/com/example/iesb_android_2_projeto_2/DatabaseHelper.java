@@ -5,85 +5,109 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-
 import java.util.ArrayList;
-import java.util.List;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
-
     private static final int DATABASE_VERSION = 1;
-    private static final String DATABASE_NAME = "PersonDB";
-    private static final String TABLE_NAME = "person";
-
+    private static final String DATABASE_NAME = "ContactsDB";
+    private static final String TABLE_NAME = "contacts";
     private static final String KEY_ID = "id";
     private static final String KEY_NAME = "name";
+    private static final String KEY_EMAIL = "email";
+    private static final String KEY_PHONE = "phone";
 
-    public DatabaseHelper(Context context) {
+    private static DatabaseHelper instance;
+
+    private DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
 
-    @Override
-    public void onCreate(SQLiteDatabase sqLiteDatabase) {
-        String createTableSQL = "CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " (" +
-                KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "+
-                KEY_NAME + " TEXT " + ")";
-        sqLiteDatabase.execSQL(createTableSQL);
+    public static synchronized DatabaseHelper getInstance(Context context) {
+        if (instance == null) {
+            instance = new DatabaseHelper(context.getApplicationContext());
+        }
+        return instance;
     }
 
     @Override
-    public void onUpgrade(SQLiteDatabase sqLiteDatabase, int i, int i1) {
-        sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME);
-        onCreate(sqLiteDatabase);
+    public void onCreate(SQLiteDatabase db) {
+        String createTable = "CREATE TABLE " + TABLE_NAME +
+                "(" + KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                KEY_NAME + " TEXT, " +
+                KEY_EMAIL + " TEXT, " +
+                KEY_PHONE + " TEXT)";
+        db.execSQL(createTable);
     }
 
-    public long addPerson(Person person) {
-        SQLiteDatabase database = this.getWritableDatabase();
+    @Override
+    public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME);
+        onCreate(db);
+    }
+
+    public long addContact(String name, String email, String phone) {
+        SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
-        values.put(KEY_NAME, person.getName());
+        values.put(KEY_NAME, name);
+        values.put(KEY_EMAIL, email);
+        values.put(KEY_PHONE, phone);
 
-        long id = database.insert(TABLE_NAME, null, values);
-        //Realizar teste de carga
-        database.close();
+        long id = db.insert(TABLE_NAME, null, values);
+        db.close();
         return id;
     }
 
-    public List<Person> getAllPerson() {
-        List<Person> personList = new ArrayList<>();
-        String SQL = "SELECT * FROM " + TABLE_NAME;
-        SQLiteDatabase sqLiteDatabase = this.getWritableDatabase();
-        Cursor cursor = sqLiteDatabase.rawQuery(SQL, null);
+    public ArrayList<Contact> getAllContacts() {
+        ArrayList<Contact> contactList = new ArrayList<>();
+        String selectQuery = "SELECT * FROM " + TABLE_NAME;
+        SQLiteDatabase db = this.getWritableDatabase();
+        Cursor cursor = db.rawQuery(selectQuery, null);
 
-        if(cursor.moveToFirst()) {
-            do {
-                Person person = new Person(
-                        cursor.getInt(0),
-                        cursor.getString(1)
-                );
-                personList.add(person);
-            } while (cursor.moveToNext());
+        int idIndex = cursor.getColumnIndex(KEY_ID);
+        int nameIndex = cursor.getColumnIndex(KEY_NAME);
+        int emailIndex = cursor.getColumnIndex(KEY_EMAIL);
+        int phoneIndex = cursor.getColumnIndex(KEY_PHONE);
+
+        if (idIndex < 0 || nameIndex < 0 || emailIndex < 0 || phoneIndex < 0) {
+            return contactList;
         }
-        cursor.close();
-        sqLiteDatabase.close();
-        return personList;
+
+        try {
+          if (cursor.moveToFirst()) {
+            do {
+              long id = cursor.getLong(idIndex);
+              String name = cursor.getString(nameIndex);
+              String email = cursor.getString(emailIndex);
+              String phone = cursor.getString(phoneIndex);
+
+              Contact contact = new Contact(id, name, email, phone);
+              contactList.add(contact);
+            } while (cursor.moveToNext());
+          }
+        } finally {
+            cursor.close();
+            db.close();
+        }
+
+        return contactList;
     }
 
-    public int updatePerson (Person person) {
-        SQLiteDatabase database = this.getWritableDatabase();
-        ContentValues contentValues = new ContentValues();
-        contentValues.put(KEY_NAME, person.getName());
+    public void updateContact(long id, String name, String email, String phone) {
+        SQLiteDatabase db = this.getWritableDatabase();
 
-        int rowsAffected = database.update(TABLE_NAME, contentValues, KEY_ID + " = ?",
-                new String[] {String.valueOf(person.getId())});
+        ContentValues values = new ContentValues();
+        values.put(KEY_NAME, name);
+        values.put(KEY_EMAIL, email);
+        values.put(KEY_PHONE, phone);
 
-        database.close();
-        return rowsAffected;
+        db.update(TABLE_NAME, values, KEY_ID + " = ?", new String[]{String.valueOf(id)});
+
+        db.close();
     }
 
-    public int deletePerson(int personId) {
-        SQLiteDatabase database = this.getWritableDatabase();
-        int rowsAffected = database.delete(TABLE_NAME, KEY_ID + " = ?", new String[]{String.valueOf(personId)});
-
-        database.close();
-        return rowsAffected;
+    public void deleteContact(long id) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.delete(TABLE_NAME, KEY_ID + " = ?", new String[]{String.valueOf(id)});
+        db.close();
     }
 }
