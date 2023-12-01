@@ -58,6 +58,7 @@ public class ContactAdapter extends BaseAdapter {
 
     @Override
     public long getItemId(int position) {
+      return position;
     }
 
     @Override

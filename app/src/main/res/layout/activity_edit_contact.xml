@@ -36,7 +36,8 @@
             android:id="@+id/saveFormButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Salvar" />
+            android:text="Salvar"
+            android:layout_gravity="center" />
 
     </LinearLayout>
 
